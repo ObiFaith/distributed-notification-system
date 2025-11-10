@@ -1,0 +1,37 @@
+name: API Gateway CI
+
+# Trigger workflow on push or pull request to the api_gateway service folder
+on:
+  push:
+    paths:
+      - 'services/api_gateway/**'
+  pull_request:
+    paths:
+      - 'services/api_gateway/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout the repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          cd services/api_gateway
+          pip install -r requirements.txt
+
+      # 4. Run tests (placeholder)
+      - name: Run tests
+        run: |
+          cd services/api_gateway
+          # Replace this with actual test command
+          echo "Running tests for API Gateway..."

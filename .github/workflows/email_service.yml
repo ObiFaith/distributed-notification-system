@@ -1,0 +1,33 @@
+name: Email Service CI
+
+# Trigger this workflow on PRs or pushes to the email service folder
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/email_service/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/email_service/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Placeholder: developers can add their own steps
+      - name: Build & Test
+        run: echo "Build and test commands go here"
+
+      # Placeholder: developers can add deploy steps if needed
+      - name: Deploy
+        run: echo "Deployment steps go here"

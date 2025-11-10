@@ -1,0 +1,31 @@
+name: Template Service CI
+
+# Trigger this workflow on PRs or pushes to the template service folder
+on:
+  push:
+    paths:
+      - 'services/template_service/**'
+  pull_request:
+    paths:
+      - 'services/template_service/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Placeholder for installing dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # Placeholder for testing
+      - name: Run tests
+        run: echo "Run your Flask tests here"
+
+      # Placeholder for building Docker image
+      - name: Build Docker Image
+        run: echo "Build your Docker image here"
