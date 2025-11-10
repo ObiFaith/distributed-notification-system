@@ -1,33 +1,46 @@
 name: Email Service CI
 
-# Trigger this workflow on PRs or pushes to the email service folder
 on:
   push:
-    branches: [ main ]
+    branches: [main, dev]
     paths:
-      - 'services/email_service/**'
+      - "services/email_service/**"
   pull_request:
-    branches: [ main ]
+    branches: [main, dev]
     paths:
-      - 'services/email_service/**'
+      - "services/email_service/**"
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/email_service
+
     steps:
+      # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install dependencies
-      - name: Set up Node.js
+      # Node + pnpm setup
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: "pnpm"
 
-      # Placeholder: developers can add their own steps
-      - name: Build & Test
-        run: echo "Build and test commands go here"
+      - name: Install pnpm globally
+        run: npm install -g pnpm
 
-      # Placeholder: developers can add deploy steps if needed
-      - name: Deploy
-        run: echo "Deployment steps go here"
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      # Lint the code
+      - name: Lint
+        run: pnpm run lint
+
+      # Build the NestJS project
+      - name: Build
+        run: pnpm run build
