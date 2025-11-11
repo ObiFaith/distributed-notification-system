@@ -7,8 +7,12 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const port = process.env.PORT || 3000;
   const logger = new Logger('Bootstrap');
-  const rabbitMqUrl = process.env.RABBITMQ_URL;
   const emailQueue = process.env.EMAIL_QUEUE;
+  const rabbitMqUrl = process.env.RABBITMQ_URL;
+  const failedQueue = process.env.FAILED_QUEUE;
+  const notificationExchange = process.env.NOTIFICATIONS_EXCHANGE;
+
+  console.log(failedQueue, notificationExchange);
 
   if (!rabbitMqUrl || !emailQueue) {
     throw new Error('RABBITMQ_URL or EMAIL_QUEUE is not defined in .env');
@@ -21,7 +25,15 @@ async function bootstrap() {
     options: {
       urls: [rabbitMqUrl],
       queue: emailQueue,
-      queueOptions: { durable: true },
+      queueOptions: {
+        durable: true,
+        arguments: {
+          'x-dead-letter-exchange': notificationExchange,
+          'x-dead-letter-routing-key': failedQueue,
+        },
+      },
+      exchange: notificationExchange,
+      exchangeType: 'direct',
     },
   });
 
