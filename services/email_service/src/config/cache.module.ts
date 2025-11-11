@@ -2,8 +2,6 @@ import Redis from 'ioredis';
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 
-console.log('redis', process.env.REDIS_URL);
-
 @Module({
   imports: [
     CacheModule.registerAsync({
