@@ -7,7 +7,10 @@ which helps us describe what kind of data the API receives, what kind of data it
 """
 
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field ,HttpUrl
+from enum import Enum
+from uuid import UUID
+
 
 """
 since this api gateway is the entry point , so it needs to
@@ -53,10 +56,31 @@ class ResponseEnvelope(BaseModel):
 Before sending out the messages to rabbitMQ , fastapi needs to know what a valid notification requests looks like:
 this is what this class does , defines the expected shape of the incoming data"
 """
+# class NotificationPayload(BaseModel):
+#     request_id: str = Field(..., description="Unique id for idempotency")
+#     user_id: int
+#     notification_type: str = Field(..., pattern="^(email|push)$")
+#     template: str
+#     variables: Dict[str, Any] = Field(default_factory=dict)
+#     priority: Optional[int] = 0
+
+
+
+
+class NotificationType(str, Enum):
+    email = "email"
+    push = "push"
+
+class UserData(BaseModel):
+    name: str
+    link: HttpUrl
+    meta: Optional[dict]
+
 class NotificationPayload(BaseModel):
+    notification_type: NotificationType = Field(..., description="Either 'email' or 'push'")
+    user_id: UUID = Field(..., description="Unique identifier for the user")
+    template_code: str = Field(..., description="Template name or code to use for the notification")
+    variables: UserData = Field(..., description="Dynamic variables for rendering the message")
     request_id: str = Field(..., description="Unique id for idempotency")
-    user_id: int
-    notification_type: str = Field(..., pattern="^(email|push)$")
-    template: str
-    variables: Dict[str, Any] = Field(default_factory=dict)
-    priority: Optional[int] = 0
+    priority: int = Field(0, description="Notification priority level (default: 0)")
+    metadata: Optional[dict] = Field(None, description="Additional metadata if needed")
