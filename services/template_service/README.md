@@ -1,26 +1,29 @@
-# [Service Name]
+# Template Service (Flask)
 
-## Overview
+Manages notification templates with version history, multi-language, and variable substitution.
 
-Brief explanation of what this service does.
+## Run locally (without Docker)
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-## Tech Stack
+export FLASK_APP=wsgi.py
+export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/postgres
 
-- Framework: Flask
-- Database: PostgreSQL
+flask db init
+flask db migrate -m "init templates"
+flask db upgrade
 
-## Setup
+gunicorn -w 2 -b 0.0.0.0:8000 wsgi:app
 
-Steps to run this service locally.
-
-## Environment Variables
-
-List of required `.env` variables.
-
-## API Endpoints
-
-Outline of main endpoints or routes.
+## Endpoints (snake_case)
+GET    /templates?code=&language=&page=&limit=
+GET    /templates/{code}?lang=en&version=latest
+GET    /templates/{code}/versions?lang=en
+POST   /templates                         # body: { code, language?, subject?, body_html?, body_text?, meta? }
+POST   /templates/render                  # body: { template_code, language?, version?=latest, data? }
+GET    /health
 
 ## Notes
-
-Any relevant integration or dependency info.
+- Version auto-increments per (code, language).
+- Rendering uses Jinja2 with the provided `data` dictionary.
+- Responses follow the shared { success, data, error, message, meta } format.
