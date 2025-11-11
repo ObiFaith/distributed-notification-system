@@ -12,8 +12,6 @@ async function bootstrap() {
   const failedQueue = process.env.FAILED_QUEUE;
   const notificationExchange = process.env.NOTIFICATIONS_EXCHANGE;
 
-  console.log(failedQueue, notificationExchange);
-
   if (!rabbitMqUrl || !emailQueue) {
     throw new Error('RABBITMQ_URL or EMAIL_QUEUE is not defined in .env');
   }
