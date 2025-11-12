@@ -21,7 +21,7 @@ COPY . .
 RUN mkdir -p /app/app
 
 # Expose port
-EXPOSE 5001
+EXPOSE ${PORT: -5001}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
