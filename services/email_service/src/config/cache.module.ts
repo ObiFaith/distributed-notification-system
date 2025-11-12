@@ -7,9 +7,11 @@ import { CacheModule } from '@nestjs/cache-manager';
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: () => {
-        const redisClient = new Redis(
-          process.env.REDIS_URL || 'redis://localhost:6379',
-        );
+        if (!process.env.REDIS_URL) {
+          throw new Error('CacheModule: REDIS_URL is not defined!');
+        }
+
+        const redisClient = new Redis(process.env.REDIS_URL);
 
         // optional logging
         redisClient.on('connect', () => console.log('Redis connected'));

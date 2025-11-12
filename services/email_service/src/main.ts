@@ -13,7 +13,7 @@ async function bootstrap() {
   const notificationExchange = process.env.NOTIFICATIONS_EXCHANGE;
 
   if (!rabbitMqUrl || !emailQueue) {
-    throw new Error('RABBITMQ_URL or EMAIL_QUEUE is not defined in .env');
+    throw new Error('Bootstrap: RABBITMQ_URL or EMAIL_QUEUE is not defined!');
   }
 
   const app = await NestFactory.create(AppModule);
@@ -30,8 +30,8 @@ async function bootstrap() {
           'x-dead-letter-routing-key': failedQueue,
         },
       },
-      exchange: notificationExchange,
-      exchangeType: 'direct',
+      noAck: false,
+      prefetchCount: 1,
     },
   });
 
@@ -46,7 +46,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  await app.startAllMicroservices();
+  await app
+    .startAllMicroservices()
+    .then(() => {
+      logger.log('Microservices started successfully');
+    })
+    .catch((error) => {
+      logger.error('Failed to start microservices:', error);
+    });
   await app.listen(port);
 
   logger.log(`Email Service running on: http://localhost:${port}`);
