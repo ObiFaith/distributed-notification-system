@@ -1,7 +1,11 @@
+import { Repository } from 'typeorm';
 import type { Cache } from 'cache-manager';
 import { Channel, ConsumeMessage } from 'amqplib';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { MailerService } from '@nestjs-modules/mailer';
 import { Inject, Controller, Logger } from '@nestjs/common';
+import { EmailStatus, NotificationEmail } from './entity/email.entity';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
 interface EmailJob {
@@ -19,13 +23,27 @@ interface EmailJob {
 export class EmailConsumer {
   private readonly logger = new Logger(EmailConsumer.name);
 
-  constructor(@Inject(CACHE_MANAGER) private cache: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cache: Cache,
+    private readonly mailerService: MailerService,
+    @InjectRepository(NotificationEmail)
+    private readonly notificationEmailRepo: Repository<NotificationEmail>,
+  ) {}
 
-  private async simulateEmailSend(job: EmailJob) {
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-    this.logger.debug(
-      `Simulating email send: to=${job.user_email}, template=${job.template_code}`,
-    );
+  private async sendEmail(job: EmailJob) {
+    const { user_email, template_code, variables } = job;
+
+    await this.mailerService.sendMail({
+      to: user_email,
+      subject: `Notification: ${template_code}`,
+      html: `
+        <div>
+          <p>Hello ${variables?.name || 'User'},</p>
+          <p>Your notification "${template_code}" has been triggered.</p>
+          ${variables?.link ? `<a href="${variables.link}">View details</a>` : ''}
+        </div>
+      `,
+    });
   }
 
   private sendToFailedQueue(channel: Channel, data: EmailJob) {
@@ -103,7 +121,11 @@ export class EmailConsumer {
     }
 
     try {
-      await this.simulateEmailSend(data);
+      await this.sendEmail(data);
+      await this.notificationEmailRepo.update(
+        { notification_id: data.notification_id },
+        { status: EmailStatus.SENT, sent_at: new Date() },
+      );
 
       this.logger.log(`Email sent successfully to ${data.user_email}`);
       await this.cache.set(idempotencyKey, true, 300); // 5 mins TTL
@@ -112,6 +134,12 @@ export class EmailConsumer {
     } catch (err) {
       const errMessage =
         err instanceof Error ? err.message : JSON.stringify(err);
+
+      await this.notificationEmailRepo.update(
+        { notification_id: data.notification_id },
+        { status: EmailStatus.FAILED, error_message: errMessage },
+      );
+
       this.logger.error(`Failed to process email: ${errMessage}`);
 
       // Circuit Breaker increment
