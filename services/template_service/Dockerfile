@@ -21,7 +21,7 @@ COPY . .
 RUN mkdir -p /app/app /app/migrations
 
 # Expose port
-EXPOSE ${PORT: -5002}
+EXPOSE 5002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
