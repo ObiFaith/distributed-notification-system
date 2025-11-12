@@ -1,4 +1,5 @@
 # app/main.py
+import asyncio
 from fastapi import FastAPI
 from app.routes import notifications, health
 from app.redis_client import redis_client
@@ -12,7 +13,8 @@ app.include_router(health.router, prefix="/api")
 @app.on_event("startup")
 async def startup_event():
     await redis_client.connect()
-    await rabbit_publisher.connect()
+    loop = asyncio.get_event_loop()
+    await loop.create_task(rabbit_publisher.connect())
 
 @app.on_event("shutdown")
 async def shutdown_event():

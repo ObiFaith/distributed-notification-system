@@ -43,7 +43,7 @@ class RabbitPublisher:
     async def connect(self):
         """Try connecting to RabbitMQ until it succeeds"""
         print("⏳ Connecting to RabbitMQ...")
-        self.connection = await aio_pika.connect_robust(RABBIT_URL)
+        self.connection = await aio_pika.connect_robust(RABBIT_URL, ssl=True, ssl_options=None)
         self.channel = await self.connection.channel()
         self.exchange = await self.channel.declare_exchange(
             EXCHANGE_NAME, aio_pika.ExchangeType.DIRECT, durable=True
