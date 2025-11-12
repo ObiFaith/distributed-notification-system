@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NotificationEmail } from 'src/email/entity/email.entity';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         ssl: {
           rejectUnauthorized: false,
         },
-        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        entities: [NotificationEmail],
         synchronize: false,
         logging: ['error'],
         extra: { max: 20, idleTimeoutMillis: 30000 },
