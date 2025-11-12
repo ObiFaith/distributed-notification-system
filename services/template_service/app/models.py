@@ -13,7 +13,7 @@ class Template(db.Model):
     
     subject = db.Column(db.Text, nullable=True)
     body = db.Column(db.Text, nullable=False)
-    variables = db.Column(db.JSON, nullable=False, default=list)
+    variables = db.Column(db.JSON, nullable=False, default=lambda: [])
     
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)

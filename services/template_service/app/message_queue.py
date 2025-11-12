@@ -40,17 +40,17 @@ class MessageQueue:
                 durable=True
             )
             
-            self.channel.queue_declare(queue='email_notifications', durable=True)
-            self.channel.queue_declare(queue='push_notifications', durable=True)
+            self.channel.queue_declare(queue='email.queue', durable=True)
+            self.channel.queue_declare(queue='push.queue', durable=True)
             
             self.channel.queue_bind(
-                exchange='notifications',
-                queue='email_notifications',
+                exchange='notifications.direct',
+                queue='email.queue',
                 routing_key='email.notify'
             )
             self.channel.queue_bind(
-                exchange='notifications',
-                queue='push_notifications',
+                exchange='notifications.direct',
+                queue='push.queue',
                 routing_key='push.notify'
             )
             
