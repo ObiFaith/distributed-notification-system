@@ -24,6 +24,8 @@ def wait_for_services():
     
     raise Exception("❌ Failed to connect to services after maximum retries")
 
+app = wait_for_services()
+
 if __name__ == '__main__':
     app = wait_for_services()
     port = int(os.getenv('PORT', 5001))
