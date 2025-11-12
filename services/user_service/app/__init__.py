@@ -1,46 +1,59 @@
-# app/__init__.py
-import os
-from flask import Flask, jsonify
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from .config import Config
+import redis
+import os
+import logging
 
 db = SQLAlchemy()
 migrate = Migrate()
-jwt = JWTManager()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config())
-
-    # extensions
-    CORS(app, supports_credentials=True)
+    
+    # Load configuration
+    from config import Config
+    app.config.from_object(Config)
+    
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    jwt.init_app(app)
-
-    # blueprints
-    from .routes.users import bp as users_bp
-    from .routes.auth import bp as auth_bp
-    app.register_blueprint(users_bp)
-    app.register_blueprint(auth_bp)
-
-    # health endpoint
-    @app.get("/health")
-    def health():
-        try:
-            db.session.execute(db.text("SELECT 1"))
-            return jsonify({"status": "ok", "dependencies": {"db": "ok"}}), 200
-        except Exception:
-            return jsonify({"status": "degraded", "dependencies": {"db": "down"}}), 503
-
-    # declare RabbitMQ topology once (non-fatal if broker is down)
+    
+    # Initialize Redis
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    app.redis = redis.from_url(redis_url)
+    logger.info("✅ Redis connected successfully")
+    
+    # Initialize RabbitMQ
     try:
-        from .rabbit_topology import ensure_topology
-        ensure_topology()
+        from app.message_queue import mq
+        mq.connect()
     except Exception as e:
-        app.logger.warning(f"RabbitMQ topology setup skipped/failed: {e}")
-
+        logger.warning(f"⚠️  RabbitMQ not connected: {e}")
+    
+    # Register routes
+    from app.routes import register_routes
+    register_routes(app)
+    
+    # Create tables
+    with app.app_context():
+        db.create_all()
+        
+        # Create admin user if it doesn't exist
+        from app.models import User
+        admin = User.query.filter_by(email='admin@example.com').first()
+        if not admin:
+            admin = User(name='Admin User', email='admin@example.com')
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            logger.info("✅ Admin user created: admin@example.com")
+    
     return app
