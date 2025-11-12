@@ -18,21 +18,33 @@ export class PushService implements OnModuleInit {
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
+    const firebaseEnv = this.configService.get<string>(
+      'FIREBASE_CREDENTIALS_JSON',
+    );
     const firebasePath = this.configService.get<string>('FIREBASE_CREDENTIALS');
-    if (!firebasePath) {
-      throw new Error('FIREBASE_CREDENTIALS env variable is not defined');
-    }
 
-    const serviceAccountPath = path.resolve(__dirname, '../../', firebasePath);
-    const serviceAccount = JSON.parse(
-      fs.readFileSync(serviceAccountPath, 'utf8'),
-    ) as string;
+    let serviceAccount: admin.ServiceAccount;
+
+    if (firebaseEnv) {
+      serviceAccount = JSON.parse(firebaseEnv) as admin.ServiceAccount;
+    } else if (firebasePath) {
+      const serviceAccountPath = path.resolve(
+        __dirname,
+        '../../',
+        firebasePath,
+      );
+      serviceAccount = JSON.parse(
+        fs.readFileSync(serviceAccountPath, 'utf8'),
+      ) as admin.ServiceAccount;
+    } else {
+      throw new Error('No Firebase credentials provided');
+    }
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
 
-    this.logger.log('✅ Connected to Firebase successfully');
+    this.logger.log('Connected to Firebase successfully');
     this.logger.log(' PushService is listening to RabbitMQ queue: push.queue');
   }
 
