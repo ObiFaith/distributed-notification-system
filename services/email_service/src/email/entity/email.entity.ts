@@ -12,7 +12,7 @@ export enum EmailStatus {
   RETRYING = 'retrying',
 }
 
-@Entity('notifications_email')
+@Entity('notification_email')
 export class NotificationEmail {
   @PrimaryGeneratedColumn('uuid')
   id: string;

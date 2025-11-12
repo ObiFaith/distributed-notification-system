@@ -161,4 +161,27 @@ export class EmailConsumer {
       channel.nack(message, false, false); // remove from queue (goes to DLQ)
     }
   }
+
+  @EventPattern('notification.failed')
+  async handleFailedEmails(
+    @Payload() data: EmailJob,
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const message = context.getMessage();
+
+    this.logger.warn(`Retrying failed email job: ${data.notification_id}`);
+
+    try {
+      await this.sendEmail(data);
+      await this.notificationEmailRepo.update(
+        { notification_id: data.notification_id },
+        { status: EmailStatus.SENT, sent_at: new Date() },
+      );
+      channel.ack(message);
+    } catch (err) {
+      this.logger.error(`Retry failed: ${err.message}`);
+      channel.nack(message, false, false); // stays in DLQ
+    }
+  }
 }

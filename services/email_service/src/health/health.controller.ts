@@ -1,7 +1,11 @@
 import * as amqp from 'amqplib';
 import { ConfigService } from '@nestjs/config';
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, TypeOrmHealthIndicator } from '@nestjs/terminus';
+import {
+  HealthCheck,
+  HealthCheckService,
+  TypeOrmHealthIndicator,
+} from '@nestjs/terminus';
 
 @Controller('health')
 export class HealthController {
