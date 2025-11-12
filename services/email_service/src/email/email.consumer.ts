@@ -34,11 +34,22 @@ export class EmailConsumer {
         ...data,
         failed_at: new Date().toISOString(),
       };
+
+      const failedQueue = process.env.FAILED_QUEUE;
+      const notificationExchange = process.env.NOTIFICATIONS_EXCHANGE;
+
+      if (!notificationExchange || !failedQueue) {
+        throw new Error(
+          'sendToFailedQueue: NOTIFICATIONS_EXCHANGE, EMAIL_QUEUE or FAILED_QUEUE is not defined!',
+        );
+      }
+
       channel.publish(
-        'notifications.direct', // exchange
-        'failed.queue', // routing key
+        notificationExchange,
+        failedQueue,
         Buffer.from(JSON.stringify(failedPayload)),
       );
+
       this.logger.warn(
         `Sent failed job to DLQ: notification_id=${data.notification_id}`,
       );
@@ -46,11 +57,13 @@ export class EmailConsumer {
       this.logger.error(`Failed to publish to failed.queue: ${err}`);
     }
   }
+
   @EventPattern('email.notify')
   async handleEmailNotification(
     @Payload() data: EmailJob,
     @Ctx() context: RmqContext,
   ) {
+    this.logger.log('Handler triggered for email.notify');
     const channel = context.getChannelRef() as Channel;
     const message = context.getMessage() as ConsumeMessage;
 
@@ -109,7 +122,7 @@ export class EmailConsumer {
 
       if (newCount >= 5) {
         this.logger.error(
-          `⚠️ Too many email failures! Opening circuit for 60 seconds.`,
+          'Too many email failures! Opening circuit for 60 seconds.',
         );
         await this.cache.set(circuitKey, true, 60);
       }
