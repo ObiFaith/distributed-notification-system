@@ -10,6 +10,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { EmailModule } from './email/email.module';
 import { HealthController } from './health/health.controller';
 import { DatabaseLogger } from './utils/database-logger.service';
+import { EmailStatusModule } from './email-status/email-status.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DatabaseLogger } from './utils/database-logger.service';
     HttpModule,
     CacheConfigModule,
     EmailModule,
+    EmailStatusModule,
   ],
   controllers: [HealthController],
   providers: [DatabaseLogger],
