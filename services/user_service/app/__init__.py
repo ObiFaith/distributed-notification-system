@@ -1,59 +1,110 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flasgger import Swagger
 import redis
-import os
 import logging
+import os
 
+# Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__)
     
-    # Load configuration
-    from config import Config
-    app.config.from_object(Config)
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
     
-    # Initialize extensions
+    # Load configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
+    
+    # Swagger configuration
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": 'apispec',
+                "route": '/apispec.json',
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/docs"
+    }
+    
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "User Service API",
+            "description": "API for managing users and authentication in the HNG Notification System",
+            "version": "1.0.0",
+            "contact": {
+                "name": "HNG Team",
+                "url": "https://hng.tech"
+            }
+        },
+        "host": "localhost:5001",
+        "basePath": "/",
+        "schemes": ["http", "https"],
+        "tags": [
+            {
+                "name": "Users",
+                "description": "User management endpoints"
+            },
+            {
+                "name": "Authentication",
+                "description": "Authentication endpoints"
+            },
+            {
+                "name": "Preferences",
+                "description": "User preferences endpoints"
+            },
+            {
+                "name": "Health",
+                "description": "Service health check"
+            }
+        ]
+    }
+    
+    # Initialize Swagger
+    Swagger(app, config=swagger_config, template=swagger_template)
+    
+    # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
     
     # Initialize Redis
-    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-    app.redis = redis.from_url(redis_url)
-    logger.info("✅ Redis connected successfully")
+    try:
+        redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+        app.redis = redis.from_url(redis_url)
+        app.redis.ping()
+        logger.info("✅ Redis connected successfully")
+    except Exception as e:
+        logger.error(f"❌ Redis connection failed: {e}")
+        app.redis = None
     
     # Initialize RabbitMQ
+    from app.message_queue import mq
     try:
-        from app.message_queue import mq
         mq.connect()
     except Exception as e:
-        logger.warning(f"⚠️  RabbitMQ not connected: {e}")
+        logger.error(f"❌ RabbitMQ connection failed: {e}")
     
     # Register routes
-    from app.routes import register_routes
-    register_routes(app)
-    
-    # Create tables
     with app.app_context():
-        db.create_all()
+        from app.routes import register_routes
+        register_routes(app)
         
-        # Create admin user if it doesn't exist
-        from app.models import User
-        admin = User.query.filter_by(email='admin@example.com').first()
-        if not admin:
-            admin = User(name='Admin User', email='admin@example.com')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            logger.info("✅ Admin user created: admin@example.com")
+        # Create database tables
+        db.create_all()
     
     return app
