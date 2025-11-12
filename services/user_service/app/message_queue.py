@@ -8,7 +8,11 @@ logger = logging.getLogger(__name__)
 
 class MessageQueue:
     def __init__(self):
-        self.rabbitmq_url = os.getenv('RABBITMQ_URL', 'amqp://admin:admin123@rabbitmq:5672/')
+        # Get from environment variable (CloudAMQP URL)
+        self.rabbitmq_url = os.getenv('RABBITMQ_URL')
+        if not self.rabbitmq_url:
+            raise ValueError("RABBITMQ_URL environment variable is not set")
+        
         self.connection = None
         self.channel = None
         
@@ -26,23 +30,21 @@ class MessageQueue:
                 durable=True
             )
             
-            # Declare queues for different notification types
             self.channel.queue_declare(queue='email_notifications', durable=True)
             self.channel.queue_declare(queue='push_notifications', durable=True)
             
-            # Bind queues to exchange
             self.channel.queue_bind(
                 exchange='notifications',
                 queue='email_notifications',
-                routing_key='notification.email.*'
+                routing_key='email.notify'
             )
             self.channel.queue_bind(
                 exchange='notifications',
                 queue='push_notifications',
-                routing_key='notification.push.*'
+                routing_key='push.notify'
             )
             
-            logger.info("✅ Connected to RabbitMQ")
+            logger.info("✅ Connected to CloudAMQP RabbitMQ")
             return True
         except Exception as e:
             logger.error(f"❌ Failed to connect to RabbitMQ: {e}")
@@ -59,7 +61,7 @@ class MessageQueue:
                 routing_key=routing_key,
                 body=json.dumps(message),
                 properties=pika.BasicProperties(
-                    delivery_mode=2,  # Make message persistent
+                    delivery_mode=2,
                     content_type='application/json'
                 )
             )
@@ -75,5 +77,4 @@ class MessageQueue:
             self.connection.close()
             logger.info("RabbitMQ connection closed")
 
-# Global message queue instance
 mq = MessageQueue()
