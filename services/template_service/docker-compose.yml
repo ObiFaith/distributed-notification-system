@@ -1,8 +1,8 @@
 services:
-  # PostgreSQL for User Service
-  user-db:
+  # PostgreSQL for Template Service
+  template-db:
     image: postgres:15-alpine
-    container_name: user-db
+    container_name: template-db
     env_file:
       - .env
     environment:
@@ -10,11 +10,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
-      - user-db-data:/var/lib/postgresql/data
+      - template-db-data:/var/lib/postgresql/data
     networks:
-      - user-network
+      - template-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -22,17 +22,17 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis for User Service
-  user-redis:
+  # Redis for Template Service
+  template-redis:
     image: redis:7-alpine
-    container_name: user-redis
+    container_name: template-redis
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis-data:/data
     networks:
-      - user-network
+      - template-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -40,16 +40,16 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # User Service
-  user-service:
+  # Template Service
+  template-service:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: user-service
+    container_name: template-service
     env_file:
       - .env
     ports:
-      - "5001:5001"
+      - "5002:5002"
     environment:
       FLASK_ENV: ${FLASK_ENV}
       DATABASE_URL: ${DATABASE_URL}
@@ -57,28 +57,29 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       SECRET_KEY: ${SECRET_KEY}
       PORT: ${PORT}
-      TEMPLATE_SERVICE_URL: ${TEMPLATE_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
     depends_on:
-      user-db:
+      template-db:
         condition: service_healthy
-      user-redis:
+      template-redis:
         condition: service_healthy
     networks:
-      - user-network
+      - template-network
     volumes:
       - ./app:/app/app
+      - ./migrations:/app/migrations
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
 networks:
-  user-network:
+  template-network:
     driver: bridge
 
 volumes:
-  user-db-data:
+  template-db-data:
   redis-data:

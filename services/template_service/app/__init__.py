@@ -44,29 +44,21 @@ def create_app():
     swagger_template = {
         "swagger": "2.0",
         "info": {
-            "title": "User Service API",
-            "description": "API for managing users and authentication in the HNG Notification System",
+            "title": "Template Service API",
+            "description": "API for managing notification templates in the HNG Notification System",
             "version": "1.0.0",
             "contact": {
                 "name": "HNG Team",
                 "url": "https://hng.tech"
             }
         },
-        "host": "localhost:5001",
+        "host": "localhost:5002",
         "basePath": "/",
         "schemes": ["http", "https"],
         "tags": [
             {
-                "name": "Users",
-                "description": "User management endpoints"
-            },
-            {
-                "name": "Authentication",
-                "description": "Authentication endpoints"
-            },
-            {
-                "name": "Preferences",
-                "description": "User preferences endpoints"
+                "name": "Templates",
+                "description": "Template management endpoints"
             },
             {
                 "name": "Health",
@@ -84,7 +76,7 @@ def create_app():
     
     # Initialize Redis
     try:
-        redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+        redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/1')
         app.redis = redis.from_url(redis_url)
         app.redis.ping()
         logger.info("✅ Redis connected successfully")
