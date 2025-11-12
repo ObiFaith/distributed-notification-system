@@ -1,28 +1,37 @@
-from marshmallow import Schema, fields, validate
+"""
+Validation schemas for user service
+"""
 
-# read models
-class UserOut(Schema):
-    id = fields.Str(required=True)
-    email = fields.Email(required=True)
-    role = fields.Str(required=True)
-    push_tokens = fields.List(fields.Str(), required=True)
-    preferences = fields.Dict(required=True)
-    created_at = fields.DateTime()
-    updated_at = fields.DateTime()
+def validate_user_data(data):
+    """Validate user creation data"""
+    errors = {}
+    
+    if not data.get('name'):
+        errors['name'] = 'Name is required'
+    elif len(data['name']) < 2:
+        errors['name'] = 'Name must be at least 2 characters'
+    
+    if not data.get('email'):
+        errors['email'] = 'Email is required'
+    elif '@' not in data.get('email', ''):
+        errors['email'] = 'Invalid email format'
+    
+    if not data.get('password'):
+        errors['password'] = 'Password is required'
+    elif len(data['password']) < 6:
+        errors['password'] = 'Password must be at least 6 characters'
+    
+    return errors
 
-# write models
-class UserCreate(Schema):
-    email = fields.Email(required=True)
-    password = fields.Str(required=True, validate=validate.Length(min=6))
-    role = fields.Str(load_default="user", validate=validate.OneOf(["user","admin"]))
-    push_tokens = fields.List(fields.Str(), load_default=list)
-    preferences = fields.Dict(load_default=dict)
 
-class UserUpdate(Schema):
-    role = fields.Str(validate=validate.OneOf(["user","admin"]))
-    push_tokens = fields.List(fields.Str())
-    preferences = fields.Dict()
-
-class PreferencesUpdate(Schema):
-    # free-form dict merge
-    __schema__ = True
+def validate_login_data(data):
+    """Validate login data"""
+    errors = {}
+    
+    if not data.get('email'):
+        errors['email'] = 'Email is required'
+    
+    if not data.get('password'):
+        errors['password'] = 'Password is required'
+    
+    return errors
