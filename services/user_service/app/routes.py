@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flasgger import swag_from
 from app.models import User, UserPreferences
 from app import db
 from app.schemas import validate_user_data, validate_login_data
@@ -12,6 +13,26 @@ def register_routes(app):
     
     @app.route('/')
     def index():
+        """
+        Service Information
+        ---
+        tags:
+          - Health
+        responses:
+          200:
+            description: Service information
+            schema:
+              properties:
+                service:
+                  type: string
+                  example: User Service
+                version:
+                  type: string
+                  example: 1.0.0
+                status:
+                  type: string
+                  example: running
+        """
         return jsonify({
             'service': 'User Service',
             'version': '1.0.0',
@@ -20,11 +41,96 @@ def register_routes(app):
     
     @app.route('/health')
     def health():
+        """
+        Health Check
+        ---
+        tags:
+          - Health
+        responses:
+          200:
+            description: Service is healthy
+            schema:
+              properties:
+                status:
+                  type: string
+                  example: healthy
+        """
         return jsonify({'status': 'healthy'}), 200
     
     @app.route('/api/v1/users/', methods=['POST'])
     def create_user():
-        """Create a new user"""
+        """
+        Create a new user
+        ---
+        tags:
+          - Users
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                  description: User's full name
+                email:
+                  type: string
+                  example: john.doe@example.com
+                  description: User's email address
+                password:
+                  type: string
+                  example: SecurePass123
+                  description: User's password (minimum 6 characters)
+                preferences:
+                  type: object
+                  properties:
+                    email:
+                      type: boolean
+                      example: true
+                      description: Enable email notifications
+                    push:
+                      type: boolean
+                      example: true
+                      description: Enable push notifications
+        responses:
+          201:
+            description: User created successfully
+            schema:
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: User created successfully
+                data:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: 550e8400-e29b-41d4-a716-446655440000
+                    name:
+                      type: string
+                      example: John Doe
+                    email:
+                      type: string
+                      example: john.doe@example.com
+                    created_at:
+                      type: string
+                      example: 2025-11-12T04:00:00Z
+          400:
+            description: Validation error
+          409:
+            description: User already exists
+          500:
+            description: Server error
+        """
         try:
             data = request.get_json()
             
@@ -58,18 +164,18 @@ def register_routes(app):
                 mq.publish(
                     routing_key='email.notify',
                     message={
-                        'pattern': 'email.notify',
-                        'data':{
-                            'user_id': str(user.id),
-                            'email': user.email,
-                            'name': user.name,
-                            'template_code': 'welcome_email',
-                            'variables': {
-                                'name': user.name,
-                                'app_name': 'HNG Notification System',
-                                'link': 'https://hng.tech/welcome'
+                        "pattern": "email.notify",
+                        "data": {
+                            "notification_id": str(uuid.uuid4()),
+                            "user_id": str(user.id),
+                            "user_email": user.email,
+                            "template_code": "welcome_email",
+                            "variables": {
+                                "name": user.name,
+                                "app_name": "HNG Notification System",
+                                "link": "https://hng.tech/welcome"
                             },
-                            'request_id': f'req-{uuid.uuid4()}'
+                            "request_id": f"req-{uuid.uuid4()}"
                         }
                     }
                 )
@@ -90,7 +196,26 @@ def register_routes(app):
     
     @app.route('/api/v1/users/<uuid:user_id>', methods=['GET'])
     def get_user(user_id):
-        """Get user by ID"""
+        """
+        Get user by ID
+        ---
+        tags:
+          - Users
+        parameters:
+          - name: user_id
+            in: path
+            type: string
+            required: true
+            description: User UUID
+            example: 550e8400-e29b-41d4-a716-446655440000
+        responses:
+          200:
+            description: User retrieved successfully
+          404:
+            description: User not found
+          500:
+            description: Server error
+        """
         try:
             user = User.query.get(user_id)
             if not user:
@@ -105,78 +230,57 @@ def register_routes(app):
             logger.error(f"Error getting user: {str(e)}")
             return jsonify({'success': False, 'message': 'Failed to get user'}), 500
     
-    @app.route('/api/v1/users/<uuid:user_id>', methods=['PUT'])
-    def update_user(user_id):
-        """Update user"""
-        try:
-            user = User.query.get(user_id)
-            if not user:
-                return jsonify({'success': False, 'message': 'User not found'}), 404
-            
-            data = request.get_json()
-            
-            if 'name' in data:
-                user.name = data['name']
-            
-            if 'email' in data:
-                existing = User.query.filter_by(email=data['email']).first()
-                if existing and existing.id != user.id:
-                    return jsonify({'success': False, 'message': 'Email already taken'}), 400
-                user.email = data['email']
-            
-            if 'password' in data:
-                user.set_password(data['password'])
-            
-            if 'preferences' in data:
-                prefs_data = data['preferences']
-                if user.preferences:
-                    user.preferences.email_notifications = prefs_data.get('email', user.preferences.email_notifications)
-                    user.preferences.push_notifications = prefs_data.get('push', user.preferences.push_notifications)
-                else:
-                    preferences = UserPreferences(
-                        user=user,
-                        email_notifications=prefs_data.get('email', True),
-                        push_notifications=prefs_data.get('push', True)
-                    )
-                    db.session.add(preferences)
-            
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'User updated successfully',
-                'data': user.to_dict()
-            }), 200
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error updating user: {str(e)}")
-            return jsonify({'success': False, 'message': 'Failed to update user'}), 500
-    
-    @app.route('/api/v1/users/<uuid:user_id>', methods=['DELETE'])
-    def delete_user(user_id):
-        """Delete user"""
-        try:
-            user = User.query.get(user_id)
-            if not user:
-                return jsonify({'success': False, 'message': 'User not found'}), 404
-            
-            db.session.delete(user)
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'User deleted successfully'
-            }), 200
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error deleting user: {str(e)}")
-            return jsonify({'success': False, 'message': 'Failed to delete user'}), 500
-    
     @app.route('/api/v1/users/', methods=['GET'])
     def list_users():
-        """List all users with pagination"""
+        """
+        List all users with pagination
+        ---
+        tags:
+          - Users
+        parameters:
+          - name: page
+            in: query
+            type: integer
+            default: 1
+            description: Page number
+          - name: limit
+            in: query
+            type: integer
+            default: 10
+            description: Number of items per page (max 100)
+        responses:
+          200:
+            description: Users retrieved successfully
+            schema:
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Users retrieved successfully
+                data:
+                  type: array
+                  items:
+                    type: object
+                meta:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                      example: 1
+                    limit:
+                      type: integer
+                      example: 10
+                    total:
+                      type: integer
+                      example: 50
+                    total_pages:
+                      type: integer
+                      example: 5
+          500:
+            description: Server error
+        """
         try:
             page = request.args.get('page', 1, type=int)
             limit = request.args.get('limit', 10, type=int)
@@ -203,36 +307,53 @@ def register_routes(app):
             logger.error(f"Error listing users: {str(e)}")
             return jsonify({'success': False, 'message': 'Failed to list users'}), 500
     
-    @app.route('/api/v1/users/<uuid:user_id>/preferences', methods=['GET'])
-    def get_user_preferences(user_id):
-        """Get user notification preferences"""
-        try:
-            user = User.query.get(user_id)
-            if not user:
-                return jsonify({'success': False, 'message': 'User not found'}), 404
-            
-            if not user.preferences:
-                preferences = UserPreferences(
-                    user=user,
-                    email_notifications=True,
-                    push_notifications=True
-                )
-                db.session.add(preferences)
-                db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Preferences retrieved successfully',
-                'data': user.preferences.to_dict()
-            }), 200
-            
-        except Exception as e:
-            logger.error(f"Error getting preferences: {str(e)}")
-            return jsonify({'success': False, 'message': 'Failed to get preferences'}), 500
-    
     @app.route('/api/v1/auth/login', methods=['POST'])
     def login():
-        """User login"""
+        """
+        User login
+        ---
+        tags:
+          - Authentication
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  example: SecurePass123
+        responses:
+          200:
+            description: Login successful
+            schema:
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Login successful
+                data:
+                  type: object
+                  properties:
+                    token:
+                      type: string
+                      example: token_550e8400-e29b-41d4-a716-446655440000
+                    user:
+                      type: object
+          401:
+            description: Invalid credentials
+          500:
+            description: Server error
+        """
         try:
             data = request.get_json()
             
