@@ -4,8 +4,8 @@ import { Channel, ConsumeMessage } from 'amqplib';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MailerService } from '@nestjs-modules/mailer';
+import { NotificationEmail } from './entity/email.entity';
 import { Inject, Controller, Logger } from '@nestjs/common';
-import { EmailStatus, NotificationEmail } from './entity/email.entity';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 
 interface EmailJob {
@@ -34,6 +34,7 @@ export class EmailConsumer {
     const { user_email, template_code, variables } = job;
 
     await this.mailerService.sendMail({
+      from: '"Framez Notifications" <MS_t9br9x@test-pzkmgq7xj0vl059v.mlsender.net>',
       to: user_email,
       subject: `Notification: ${template_code}`,
       html: `
@@ -124,7 +125,7 @@ export class EmailConsumer {
       await this.sendEmail(data);
       await this.notificationEmailRepo.update(
         { notification_id: data.notification_id },
-        { status: EmailStatus.SENT, sent_at: new Date() },
+        { status: 'sent', sent_at: new Date() },
       );
 
       this.logger.log(`Email sent successfully to ${data.user_email}`);
@@ -137,7 +138,7 @@ export class EmailConsumer {
 
       await this.notificationEmailRepo.update(
         { notification_id: data.notification_id },
-        { status: EmailStatus.FAILED, error_message: errMessage },
+        { status: 'failed', error_message: errMessage },
       );
 
       this.logger.error(`Failed to process email: ${errMessage}`);
@@ -167,8 +168,8 @@ export class EmailConsumer {
     @Payload() data: EmailJob,
     @Ctx() context: RmqContext,
   ) {
-    const channel = context.getChannelRef();
-    const message = context.getMessage();
+    const channel = context.getChannelRef() as Channel;
+    const message = context.getMessage() as ConsumeMessage;
 
     this.logger.warn(`Retrying failed email job: ${data.notification_id}`);
 
@@ -176,11 +177,14 @@ export class EmailConsumer {
       await this.sendEmail(data);
       await this.notificationEmailRepo.update(
         { notification_id: data.notification_id },
-        { status: EmailStatus.SENT, sent_at: new Date() },
+        { status: 'sent', sent_at: new Date() },
       );
       channel.ack(message);
     } catch (err) {
-      this.logger.error(`Retry failed: ${err.message}`);
+      const errMessage =
+        err instanceof Error ? err.message : JSON.stringify(err);
+
+      this.logger.error(`Retry failed: ${errMessage}`);
       channel.nack(message, false, false); // stays in DLQ
     }
   }

@@ -5,12 +5,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-export enum EmailStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  FAILED = 'failed',
-  RETRYING = 'retrying',
-}
+export type EmailStatus = 'pending' | 'sent' | 'failed' | 'retrying';
 
 @Entity('notification_email')
 export class NotificationEmail {
@@ -26,7 +21,11 @@ export class NotificationEmail {
   @Column({ type: 'text' })
   template_id: string;
 
-  @Column({ type: 'enum', enum: EmailStatus, default: EmailStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'sent', 'failed', 'retrying'],
+    default: 'pending',
+  })
   status: EmailStatus;
 
   @Column({ type: 'int', default: 0 })

@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { NotificationEmail, EmailStatus } from '../email/entity/email.entity';
+import { NotificationEmail } from '../email/entity/email.entity';
 
 @Injectable()
 export class EmailStatusService {
@@ -18,7 +18,7 @@ export class EmailStatusService {
     });
     if (!email) return { success: false, message: 'Notification not found' };
 
-    email.status = status || EmailStatus.FAILED;
+    email.status = status || 'failed';
     email.error_message = error || null;
     await this.notificationEmailRepo.save(email);
 
