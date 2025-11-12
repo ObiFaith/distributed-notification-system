@@ -1,27 +1,23 @@
-from marshmallow import Schema, fields, validate
+"""
+Validation schemas for template service
+"""
 
-class TemplateOut(Schema):
-    id = fields.Str(required=True)
-    code = fields.Str(required=True)
-    language = fields.Str(required=True)
-    version = fields.Int(required=True)
-    subject = fields.Str(allow_none=True)
-    body_html = fields.Str(allow_none=True)
-    body_text = fields.Str(allow_none=True)
-    meta = fields.Dict(required=True)
-    created_at = fields.DateTime()
-    updated_at = fields.DateTime()
-
-class TemplateCreate(Schema):
-    code = fields.Str(required=True)
-    language = fields.Str(load_default="en", validate=validate.Length(min=2, max=10))
-    subject = fields.Str(allow_none=True, load_default=None)
-    body_html = fields.Str(allow_none=True, load_default=None)
-    body_text = fields.Str(allow_none=True, load_default=None)
-    meta = fields.Dict(load_default=dict)
-
-class TemplateRenderIn(Schema):
-    template_code = fields.Str(required=True)
-    language = fields.Str(load_default="en")
-    version = fields.Raw(load_default="latest")  # "latest" or int
-    data = fields.Dict(load_default=dict)
+def validate_template_data(data):
+    """Validate template creation data"""
+    errors = {}
+    
+    if not data.get('code'):
+        errors['code'] = 'Template code is required'
+    
+    if not data.get('name'):
+        errors['name'] = 'Template name is required'
+    
+    if not data.get('notification_type'):
+        errors['notification_type'] = 'Notification type is required'
+    elif data['notification_type'] not in ['email', 'push', 'sms']:
+        errors['notification_type'] = 'Invalid notification type'
+    
+    if not data.get('body'):
+        errors['body'] = 'Template body is required'
+    
+    return errors
