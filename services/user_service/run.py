@@ -27,7 +27,7 @@ def wait_for_services():
 if __name__ == '__main__':
     app = wait_for_services()
     port = int(os.getenv('PORT', 5001))
-    debug = os.getenv('FLASK_ENV', 'development') == 'development'
+    debug = os.getenv('FLASK_ENV', 'production') == 'production'
     
     logger.info(f"🚀 Starting User Service on port {port}")
     app.run(host='0.0.0.0', port=port, debug=debug)
