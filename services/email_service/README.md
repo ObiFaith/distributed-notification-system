@@ -90,7 +90,6 @@ MAIL_HOST=<smtp-host>
 MAIL_PORT=<smtp-port>
 SMTP_USER=<your-email>
 SMTP_PASS=<your-password>
-MAIL_FROM="Framez <noreply@framez.app>"
 ```
 
 #### 4. Run PostgreSQL and RabbitMQ (via Docker Compose or local):

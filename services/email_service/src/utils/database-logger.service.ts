@@ -1,5 +1,5 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 
 @Injectable()
 export class DatabaseLogger implements OnModuleInit {
