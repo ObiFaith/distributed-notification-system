@@ -3,10 +3,10 @@ import type { Cache } from 'cache-manager';
 import { Channel, ConsumeMessage } from 'amqplib';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { MailerService } from '@nestjs-modules/mailer';
 import { NotificationEmail } from './entity/email.entity';
 import { Inject, Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
+import { MailerSendService } from 'src/mailersend/mailersend.service';
 
 interface EmailJob {
   notification_id: string;
@@ -25,26 +25,13 @@ export class EmailConsumer {
 
   constructor(
     @Inject(CACHE_MANAGER) private cache: Cache,
-    private readonly mailerService: MailerService,
+    private readonly mailerSendService: MailerSendService,
     @InjectRepository(NotificationEmail)
     private readonly notificationEmailRepo: Repository<NotificationEmail>,
   ) {}
 
   private async sendEmail(job: EmailJob) {
-    const { user_email, template_code, variables } = job;
-
-    await this.mailerService.sendMail({
-      from: '"Framez Notifications" <MS_t9br9x@test-pzkmgq7xj0vl059v.mlsender.net>',
-      to: user_email,
-      subject: `Notification: ${template_code}`,
-      html: `
-        <div>
-          <p>Hello ${variables?.name || 'User'},</p>
-          <p>Your notification "${template_code}" has been triggered.</p>
-          ${variables?.link ? `<a href="${variables.link}">View details</a>` : ''}
-        </div>
-      `,
-    });
+    await this.mailerSendService.sendEmail(job);
   }
 
   private sendToFailedQueue(channel: Channel, data: EmailJob) {
@@ -128,7 +115,6 @@ export class EmailConsumer {
         { status: 'sent', sent_at: new Date() },
       );
 
-      this.logger.log(`Email sent successfully to ${data.user_email}`);
       await this.cache.set(idempotencyKey, true, 300); // 5 mins TTL
 
       channel.ack(message);
@@ -140,8 +126,6 @@ export class EmailConsumer {
         { notification_id: data.notification_id },
         { status: 'failed', error_message: errMessage },
       );
-
-      this.logger.error(`Failed to process email: ${errMessage}`);
 
       // Circuit Breaker increment
       const failureKey = 'email:failures';
