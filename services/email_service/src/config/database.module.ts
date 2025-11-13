@@ -10,9 +10,6 @@ import { NotificationEmail } from 'src/email/entity/email.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
-        /* ssl: { TODO: uncomment
-          rejectUnauthorized: false,
-        }, */
         entities: [NotificationEmail],
         synchronize: false,
         logging: ['error'],
