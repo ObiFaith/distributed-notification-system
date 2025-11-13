@@ -52,9 +52,9 @@ def create_app():
                 "url": "https://hng.tech"
             }
         },
-        "host": "localhost:5001",
+        "host": os.getenv("SWAGGER_HOST"),
         "basePath": "/",
-        "schemes": ["http", "https"],
+        "schemes": ["https"],
         "tags": [
             {
                 "name": "Users",

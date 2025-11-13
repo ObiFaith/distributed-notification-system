@@ -45,16 +45,16 @@ def create_app():
         "swagger": "2.0",
         "info": {
             "title": "Template Service API",
-            "description": "API for managing notification templates in the HNG Notification System",
+            "description": "API for managing notification templates",
             "version": "1.0.0",
             "contact": {
                 "name": "HNG Team",
                 "url": "https://hng.tech"
             }
         },
-        "host": "localhost:5002",
+        "host": os.getenv("SWAGGER_HOST"),
         "basePath": "/",
-        "schemes": ["http", "https"],
+        "schemes": ["https"],
         "tags": [
             {
                 "name": "Templates",

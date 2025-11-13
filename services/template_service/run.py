@@ -1,33 +1,18 @@
 import os
-import time
 import logging
 from app import create_app
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-def wait_for_services():
-    """Wait for database and redis to be ready"""
-    max_retries = 30
-    retry_interval = 2
-    
-    for i in range(max_retries):
-        try:
-            # Try to create app (which will connect to DB and Redis)
-            app = create_app()
-            logger.info("✅ All services ready!")
-            return app
-        except Exception as e:
-            logger.warning(f"⏳ Waiting for services... ({i+1}/{max_retries})")
-            logger.debug(f"Error: {e}")
-            time.sleep(retry_interval)
-    
-    raise Exception("❌ Failed to connect to services after maximum retries")
+logger.info("🚀 Creating Template Service application...")
+app = create_app()
+logger.info("✅ Template Service created successfully")
 
 if __name__ == '__main__':
-    app = wait_for_services()
     port = int(os.getenv('PORT', 5002))
-    debug = os.getenv('FLASK_ENV', 'development') == 'development'
-    
     logger.info(f"🚀 Starting Template Service on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host='0.0.0.0', port=port, debug=False)
