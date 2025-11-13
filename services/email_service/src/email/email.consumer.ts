@@ -6,7 +6,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotificationEmail } from './entity/email.entity';
 import { Inject, Controller, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
-import { MailerSendService } from 'src/mailersend/mailersend.service';
+import { SendGridService } from 'src/sendgrid/sendgrid.service';
 
 interface EmailJob {
   notification_id: string;
@@ -25,13 +25,17 @@ export class EmailConsumer {
 
   constructor(
     @Inject(CACHE_MANAGER) private cache: Cache,
-    private readonly mailerSendService: MailerSendService,
+    private readonly sendGridService: SendGridService,
     @InjectRepository(NotificationEmail)
     private readonly notificationEmailRepo: Repository<NotificationEmail>,
   ) {}
 
   private async sendEmail(job: EmailJob) {
-    await this.mailerSendService.sendEmail(job);
+    await this.sendGridService.sendEmail(
+      job.user_email,
+      job.template_code,
+      job.variables,
+    );
   }
 
   private sendToFailedQueue(channel: Channel, data: EmailJob) {

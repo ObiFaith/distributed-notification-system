@@ -1,4 +1,3 @@
-// rabbit-initializer-service.ts
 import { connect } from 'amqplib';
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 

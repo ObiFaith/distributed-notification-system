@@ -13,6 +13,6 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   entities: [NotificationEmail],
   migrations: ['src/migrations/*.ts'],
-  synchronize: false,
+  synchronize: true, // TODO: false
   logging: true,
 });

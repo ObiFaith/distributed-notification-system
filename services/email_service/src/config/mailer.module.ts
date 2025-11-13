@@ -15,7 +15,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             pass: configService.get('MAIL_PASS'),
           },
         },
-        defaults: { from: configService.get('MAIL_FROM') },
+        defaults: { from: configService.get('MAIL_USER') },
       }),
       inject: [ConfigService],
     }),
