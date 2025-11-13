@@ -10,6 +10,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { EmailModule } from './email/email.module';
 import { HealthController } from './health/health.controller';
 import { DatabaseLogger } from './utils/database-logger.service';
+import { MailerSendService } from './mailersend/mailersend.service';
 import { EmailStatusModule } from './email-status/email-status.module';
 
 @Module({
@@ -24,6 +25,6 @@ import { EmailStatusModule } from './email-status/email-status.module';
     EmailStatusModule,
   ],
   controllers: [HealthController],
-  providers: [DatabaseLogger],
+  providers: [DatabaseLogger, MailerSendService],
 })
 export class AppModule {}
