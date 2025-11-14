@@ -217,7 +217,11 @@ def register_routes(app):
             description: Server error
         """
         try:
-            user_id = str(uuid.UUID(user_id))
+            # Ensure user_id is a valid UUID string
+            user_id_str = str(uuid.UUID(user_id))
+            # Query using the string ID
+            user = User.query.filter_by(id=user_id_str).first()
+
             if not user:
                 return jsonify({'success': False, 'message': 'User not found'}), 404
             
