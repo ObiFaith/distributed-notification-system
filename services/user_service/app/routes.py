@@ -218,7 +218,7 @@ def register_routes(app):
         """
         try:
             # Ensure user_id is a valid UUID string
-            user_id_str = str(uuid.UUID(user_id))
+            user_id_str = str(user_id)
             # Query using the string ID
             user = User.query.filter_by(id=user_id_str).first()
 
