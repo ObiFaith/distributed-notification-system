@@ -1,15 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  const configService = app.get(ConfigService);
+  const port = configService.get('PORT') || 3002;
+
+  app.setGlobalPrefix('api/v1');
+
+  // Swagger for API docs
+  const config = new DocumentBuilder()
+    .setTitle('Push Service')
+    .setDescription('Distributed Notification — Push Service')
+    .setVersion('1.0')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
   await app.listen(port);
-  Logger.log(`Application is listening on port ${port}`, 'Bootstrap');
+  console.log(`Push service listening on ${port}`);
 }
-bootstrap().catch((err) => {
-  console.error('Failed to start application:', err);
-  process.exit(1);
-});
+bootstrap();

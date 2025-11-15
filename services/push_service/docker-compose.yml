@@ -1,0 +1,34 @@
+services:
+  push-services:
+    build: .
+    volumes:
+      - ./firebase-key.json:/app/firebase-key.json
+    ports:
+      - "3002:3002"
+    environment:
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PUSH_QUEUE: push.queue
+      RETRY_QUEUE: push.retry.queue
+      FAILED_QUEUE: push.failed.queue
+    depends_on:
+       redis:
+         condition: service_started
+       rabbitmq:
+         condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672" # RabbitMQ management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
